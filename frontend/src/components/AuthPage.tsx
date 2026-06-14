@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { Mail, Lock, User, Briefcase } from 'lucide-react';
+import { API_BASE_URL } from '../config';
+
 
 interface AuthPageProps {
   onAuthSuccess: (user: { name: string; email: string; role: 'recruiter' | 'applicant' }) => void;
@@ -30,7 +32,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
         ? { email, password }
         : { name, email, password, role: role === 'applicant' ? 'candidate' : 'recruiter' };
 
-      const response = await fetch(`http://localhost:5000${endpoint}`, {
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -3,6 +3,7 @@ import { Briefcase, MapPin, IndianRupee, Search, X, Upload, FileText, CheckCircl
 import type { Job } from './RecruiterDashboard';
 import type { Application, CandidateResult } from './ResponsesPage';
 import type { InterviewRound } from '../App';
+import { API_BASE_URL } from '../config';
 
 interface ApplicantDashboardProps {
   user: { name: string; email: string; role: string };
@@ -35,7 +36,7 @@ export const ApplicantDashboard: React.FC<ApplicantDashboardProps> = ({
   useEffect(() => {
     if (viewingScheduleJobId) {
       setLoadingRounds(true);
-      fetch(`http://localhost:5000/api/jobs/${viewingScheduleJobId}/rounds`)
+      fetch(`${API_BASE_URL}/api/jobs/${viewingScheduleJobId}/rounds`)
         .then((res) => {
           if (!res.ok) throw new Error('Failed to fetch rounds');
           return res.json();
@@ -121,7 +122,7 @@ export const ApplicantDashboard: React.FC<ApplicantDashboardProps> = ({
     formData.append('jobId', applyingJob.id);
     formData.append('resume', resumeFile);
 
-    fetch('http://localhost:5000/api/applications', {
+    fetch(`${API_BASE_URL}/api/applications`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`

@@ -7,6 +7,7 @@ import { ApplicantDashboard } from './components/ApplicantDashboard';
 import { InterviewSetupPage } from './components/InterviewSetupPage';
 import type { Job } from './components/RecruiterDashboard';
 import type { Application, CandidateResult } from './components/ResponsesPage';
+import { API_BASE_URL } from './config';
 
 export interface InterviewRound {
   id: string;
@@ -68,7 +69,7 @@ function App() {
   const [editingJob, setEditingJob] = useState<Job | null>(null);
 
   const fetchJobs = () => {
-    fetch('http://localhost:5000/api/jobs')
+    fetch(`${API_BASE_URL}/api/jobs`)
       .then((res) => {
         if (!res.ok) throw new Error('Failed to fetch jobs');
         return res.json();
@@ -100,7 +101,7 @@ function App() {
 
     const token = localStorage.getItem('rms_token');
     if (token) {
-      fetch('http://localhost:5000/api/auth/me', {
+      fetch(`${API_BASE_URL}/api/auth/me`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -132,7 +133,7 @@ function App() {
     const token = localStorage.getItem('rms_token');
     if (!token) return;
 
-    fetch('http://localhost:5000/api/applications/my-applications', {
+    fetch(`${API_BASE_URL}/api/applications/my-applications`, {
       headers: {
         'Authorization': `Bearer ${token}`,
       },
@@ -162,7 +163,7 @@ function App() {
       .catch((err) => console.error('Error fetching applications:', err));
 
     // Fetch candidate round results
-    fetch('http://localhost:5000/api/results/my-results', {
+    fetch(`${API_BASE_URL}/api/results/my-results`, {
       headers: {
         'Authorization': `Bearer ${token}`,
       },
@@ -193,7 +194,7 @@ function App() {
 
     Promise.all(
       myJobs.map((job) =>
-        fetch(`http://localhost:5000/api/applications/job/${job.id}`, {
+        fetch(`${API_BASE_URL}/api/applications/job/${job.id}`, {
           headers: {
             'Authorization': `Bearer ${token}`,
           },
@@ -257,7 +258,7 @@ function App() {
       requirements: jobData.requirements,
     };
 
-    fetch('http://localhost:5000/api/jobs', {
+    fetch(`${API_BASE_URL}/api/jobs`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -310,7 +311,7 @@ function App() {
       requirements: updated.requirements,
     };
 
-    fetch(`http://localhost:5000/api/jobs/${updated.id}`, {
+    fetch(`${API_BASE_URL}/api/jobs/${updated.id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -359,7 +360,7 @@ function App() {
       return;
     }
 
-    fetch(`http://localhost:5000/api/jobs/${jobId}`, {
+    fetch(`${API_BASE_URL}/api/jobs/${jobId}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -389,7 +390,7 @@ function App() {
     const token = localStorage.getItem('rms_token');
     if (token) {
       // Fetch results
-      fetch(`http://localhost:5000/api/results/job/${jobId}`, {
+      fetch(`${API_BASE_URL}/api/results/job/${jobId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -408,7 +409,7 @@ function App() {
         })
         .catch((err) => console.error('Error fetching results:', err));
 
-      fetch(`http://localhost:5000/api/applications/job/${jobId}`, {
+      fetch(`${API_BASE_URL}/api/applications/job/${jobId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -452,7 +453,7 @@ function App() {
       return;
     }
 
-    fetch('http://localhost:5000/api/results', {
+    fetch(`${API_BASE_URL}/api/results`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -511,7 +512,7 @@ function App() {
     formData.append('roundNumber', roundNumber.toString());
     formData.append('file', csvFile);
 
-    fetch('http://localhost:5000/api/results/upload-csv', {
+    fetch(`${API_BASE_URL}/api/results/upload-csv`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -564,7 +565,7 @@ function App() {
       return;
     }
 
-    fetch('http://localhost:5000/api/results/notify-passed', {
+    fetch(`${API_BASE_URL}/api/results/notify-passed`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -596,7 +597,7 @@ function App() {
       return;
     }
 
-    fetch(`http://localhost:5000/api/applications/${appObjectId}/status`, {
+    fetch(`${API_BASE_URL}/api/applications/${appObjectId}/status`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -622,7 +623,7 @@ function App() {
     setSelectedJobId(jobId);
     
     // Fetch rounds from backend for this jobId before switching view
-    fetch(`http://localhost:5000/api/jobs/${jobId}/rounds`)
+    fetch(`${API_BASE_URL}/api/jobs/${jobId}/rounds`)
       .then((res) => {
         if (!res.ok) throw new Error('Failed to fetch rounds');
         return res.json();
@@ -673,7 +674,7 @@ function App() {
       })),
     };
 
-    fetch(`http://localhost:5000/api/jobs/${jobId}/rounds`, {
+    fetch(`${API_BASE_URL}/api/jobs/${jobId}/rounds`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
