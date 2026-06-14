@@ -18,7 +18,6 @@ export const ApplicantDashboard: React.FC<ApplicantDashboardProps> = ({
   user,
   jobs,
   myApplications,
-  interviews,
   roundResults,
   onApply,
   onLogout,
@@ -546,8 +545,8 @@ export const ApplicantDashboard: React.FC<ApplicantDashboardProps> = ({
                     const matchingApp = myApplications.find((a) => a.jobId === viewingScheduleJobId);
                     const savedResult = matchingApp
                       ? roundResults.find(
-                          (r) => r.applicationId === matchingApp.applicationId && r.roundNumber === roundNumber
-                        )
+                        (r) => r.applicationId === matchingApp.applicationId && r.roundNumber === roundNumber
+                      )
                       : null;
 
                     let nodeBg = 'var(--color-indigo)';
@@ -596,8 +595,8 @@ export const ApplicantDashboard: React.FC<ApplicantDashboardProps> = ({
                               const matchingApp = myApplications.find((a) => a.jobId === viewingScheduleJobId);
                               const savedResult = matchingApp
                                 ? roundResults.find(
-                                    (r) => r.applicationId === matchingApp.applicationId && r.roundNumber === roundNumber
-                                  )
+                                  (r) => r.applicationId === matchingApp.applicationId && r.roundNumber === roundNumber
+                                )
                                 : null;
 
                               if (savedResult) {
@@ -605,11 +604,11 @@ export const ApplicantDashboard: React.FC<ApplicantDashboardProps> = ({
                                   <div style={{ marginTop: '6px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                     <div className="flex align-center" style={{ gap: '6px' }}>
                                       <span className={`badge ${savedResult.result === 'pass' ? 'badge-success' : 'badge-danger'}`}
-                                            style={{
-                                              fontSize: '11px',
-                                              backgroundColor: savedResult.result === 'pass' ? undefined : '#fee2e2',
-                                              color: savedResult.result === 'pass' ? undefined : '#b91c1c'
-                                            }}>
+                                        style={{
+                                          fontSize: '11px',
+                                          backgroundColor: savedResult.result === 'pass' ? undefined : '#fee2e2',
+                                          color: savedResult.result === 'pass' ? undefined : '#b91c1c'
+                                        }}>
                                         Status: {savedResult.result === 'pass' ? 'Passed ✅' : 'Failed ❌'}
                                       </span>
                                     </div>
@@ -626,11 +625,11 @@ export const ApplicantDashboard: React.FC<ApplicantDashboardProps> = ({
                                 return (
                                   <div style={{ marginTop: '6px' }}>
                                     <span className="badge badge-danger"
-                                          style={{
-                                            fontSize: '11px',
-                                            backgroundColor: '#fee2e2',
-                                            color: '#b91c1c'
-                                          }}>
+                                      style={{
+                                        fontSize: '11px',
+                                        backgroundColor: '#fee2e2',
+                                        color: '#b91c1c'
+                                      }}>
                                       Status: Failed ❌
                                     </span>
                                   </div>
