@@ -1,12 +1,15 @@
-import React, { useState } from 'react';
-import { Briefcase, MapPin, DollarSign, Search, X, Upload, FileText, CheckCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Briefcase, MapPin, IndianRupee, Search, X, Upload, FileText, CheckCircle, Calendar, Clock, Info } from 'lucide-react';
 import type { Job } from './RecruiterDashboard';
-import type { Application } from './ResponsesPage';
+import type { Application, CandidateResult } from './ResponsesPage';
+import type { InterviewRound } from '../App';
 
 interface ApplicantDashboardProps {
   user: { name: string; email: string; role: string };
   jobs: Job[];
   myApplications: Application[];
+  interviews: Record<string, InterviewRound[]>;
+  roundResults: CandidateResult[];
   onApply: (application: Application) => void;
   onLogout: () => void;
 }
@@ -15,6 +18,8 @@ export const ApplicantDashboard: React.FC<ApplicantDashboardProps> = ({
   user,
   jobs,
   myApplications,
+  interviews,
+  roundResults,
   onApply,
   onLogout,
 }) => {
@@ -23,6 +28,42 @@ export const ApplicantDashboard: React.FC<ApplicantDashboardProps> = ({
   const [applyingJob, setApplyingJob] = useState<Job | null>(null);
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [resumeError, setResumeError] = useState('');
+  const [viewingScheduleJobId, setViewingScheduleJobId] = useState<string | null>(null);
+  const [scheduleRounds, setScheduleRounds] = useState<InterviewRound[]>([]);
+  const [loadingRounds, setLoadingRounds] = useState(false);
+  const [submittingApply, setSubmittingApply] = useState(false);
+
+  useEffect(() => {
+    if (viewingScheduleJobId) {
+      setLoadingRounds(true);
+      fetch(`http://localhost:5000/api/jobs/${viewingScheduleJobId}/rounds`)
+        .then((res) => {
+          if (!res.ok) throw new Error('Failed to fetch rounds');
+          return res.json();
+        })
+        .then((data) => {
+          const mapped = data.rounds.map((r: any) => ({
+            id: r._id,
+            roundNumber: r.roundNumber,
+            roundName: r.roundName,
+            dateTime: r.dateTime,
+            resultDeclaration: r.resultDeclaration,
+            isOnline: r.isOnline,
+            interviewLink: r.interviewLink || '',
+          }));
+          setScheduleRounds(mapped);
+        })
+        .catch((err) => {
+          console.error(err);
+          setScheduleRounds([]);
+        })
+        .finally(() => {
+          setLoadingRounds(false);
+        });
+    } else {
+      setScheduleRounds([]);
+    }
+  }, [viewingScheduleJobId]);
 
   const appliedJobIds = new Set(myApplications.map((a) => a.jobId));
 
@@ -67,18 +108,83 @@ export const ApplicantDashboard: React.FC<ApplicantDashboardProps> = ({
     }
     if (!applyingJob) return;
 
-    const application: Application = {
-      id: Date.now().toString(),
-      jobId: applyingJob.id,
-      candidateName: user.name,
-      candidateEmail: user.email,
-      resumeName: resumeFile.name,
-      appliedAt: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
-    };
-    onApply(application);
-    setApplyingJob(null);
-    setResumeFile(null);
-    setActiveTab('applied');
+    const token = localStorage.getItem('rms_token');
+    if (!token) {
+      alert('Your session has expired. Please log in again.');
+      onLogout();
+      return;
+    }
+
+    setSubmittingApply(true);
+    setResumeError('');
+
+    const formData = new FormData();
+    formData.append('jobId', applyingJob.id);
+    formData.append('resume', resumeFile);
+
+    fetch('http://localhost:5000/api/applications', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
+      body: formData
+    })
+      .then((res) => {
+        if (!res.ok) {
+          return res.json().then((errData) => {
+            throw new Error(errData.message || 'Failed to submit application');
+          });
+        }
+        return res.json();
+      })
+      .then((data) => {
+        const app = data.application;
+        // Map back to frontend Application layout
+        const clientApp: Application = {
+          id: app._id,
+          applicationId: app.applicationId,
+          jobId: app.jobId,
+          candidateName: user.name,
+          candidateEmail: user.email,
+          resumeName: resumeFile.name,
+          resumeaUrl: app.resumeaUrl,
+          appliedAt: new Date(app.createdAt).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+          }),
+          status: app.status,
+        };
+
+        onApply(clientApp);
+        setApplyingJob(null);
+        setResumeFile(null);
+        setActiveTab('applied');
+        alert('Application submitted successfully!');
+      })
+      .catch((err) => {
+        setResumeError(err.message || 'An error occurred during submission.');
+      })
+      .finally(() => {
+        setSubmittingApply(false);
+      });
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'applied':
+        return <span className="badge" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>Applied</span>;
+      case 'underprocess':
+        return <span className="badge" style={{ backgroundColor: '#e0f2fe', color: '#0369a1' }}>Under Process</span>;
+      case 'shortlisted':
+        return <span className="badge" style={{ backgroundColor: '#e0e7ff', color: '#3730a3' }}>Shortlisted</span>;
+      case 'rejected':
+        return <span className="badge" style={{ backgroundColor: '#fee2e2', color: '#b91c1c' }}>Rejected</span>;
+      case 'hired':
+        return <span className="badge" style={{ backgroundColor: '#d1fae5', color: '#065f46' }}>Hired</span>;
+      default:
+        return <span className="badge" style={{ backgroundColor: '#f1f5f9', color: '#334155' }}>{status}</span>;
+    }
   };
 
   return (
@@ -176,7 +282,7 @@ export const ApplicantDashboard: React.FC<ApplicantDashboardProps> = ({
                             </span>
                             {job.salary !== 'Not specified' && (
                               <span className="flex align-center" style={{ gap: '4px', fontSize: '13px', color: 'var(--text-muted)' }}>
-                                <DollarSign size={13} /> {job.salary}
+                                <IndianRupee size={13} /> {job.salary}
                               </span>
                             )}
                           </div>
@@ -235,11 +341,16 @@ export const ApplicantDashboard: React.FC<ApplicantDashboardProps> = ({
                       <th>Resume Uploaded</th>
                       <th>Applied On</th>
                       <th>Status</th>
+                      <th>Interview Schedule</th>
                     </tr>
                   </thead>
                   <tbody>
                     {myApplications.map((app) => {
                       const job = jobs.find((j) => j.id === app.jobId);
+                      const hasFailedRound = roundResults.some(
+                        (r) => r.applicationId === app.applicationId && r.result === 'fail'
+                      );
+
                       return (
                         <tr key={app.id}>
                           <td style={{ fontWeight: 600 }}>{job?.title ?? 'Unknown Job'}</td>
@@ -252,11 +363,38 @@ export const ApplicantDashboard: React.FC<ApplicantDashboardProps> = ({
                           <td>
                             <span className="flex align-center" style={{ gap: '6px' }}>
                               <FileText size={13} style={{ color: 'var(--color-indigo)' }} />
-                              <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{app.resumeName}</span>
+                              <a
+                                href={app.resumeaUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{ fontSize: '13px', color: 'var(--color-indigo)', textDecoration: 'none' }}
+                                onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
+                                onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
+                                title="View Resume"
+                              >
+                                {app.resumeName}
+                              </a>
                             </span>
                           </td>
                           <td style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{app.appliedAt}</td>
-                          <td><span className="badge badge-info">Under Review</span></td>
+                          <td>
+                            {hasFailedRound || app.status === 'rejected' ? (
+                              <span className="badge" style={{ backgroundColor: '#fee2e2', color: '#b91c1c', fontWeight: 'bold' }}>
+                                Failed & Rejected
+                              </span>
+                            ) : (
+                              getStatusBadge(app.status)
+                            )}
+                          </td>
+                          <td>
+                            <button
+                              className="btn btn-secondary btn-sm"
+                              style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                              onClick={() => setViewingScheduleJobId(app.jobId)}
+                            >
+                              <Calendar size={13} /> View Schedule
+                            </button>
+                          </td>
                         </tr>
                       );
                     })}
@@ -336,12 +474,202 @@ export const ApplicantDashboard: React.FC<ApplicantDashboardProps> = ({
 
             {/* Actions */}
             <div className="flex" style={{ gap: '12px', justifyContent: 'flex-end', marginTop: '8px' }}>
-              <button className="btn btn-secondary" onClick={() => setApplyingJob(null)}>Cancel</button>
-              <button className="btn btn-primary" onClick={handleSubmitApplication}>Submit Application</button>
+              <button className="btn btn-secondary" onClick={() => setApplyingJob(null)} disabled={submittingApply}>Cancel</button>
+              <button className="btn btn-primary" onClick={handleSubmitApplication} disabled={submittingApply}>
+                {submittingApply ? 'Uploading...' : 'Submit Application'}
+              </button>
             </div>
           </div>
         </div>
       )}
+
+      {/* Schedule Modal */}
+      {viewingScheduleJobId && (() => {
+        const scheduleJob = jobs.find((j) => j.id === viewingScheduleJobId);
+        const rounds = scheduleRounds;
+        const formatDateTime = (dtStr: string) => {
+          try {
+            const date = new Date(dtStr);
+            return date.toLocaleDateString('en-US', {
+              weekday: 'short',
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+            });
+          } catch {
+            return dtStr;
+          }
+        };
+
+        return (
+          <div className="modal-overlay" onClick={() => { setViewingScheduleJobId(null); }}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px', width: '90%' }}>
+              <button className="modal-close" onClick={() => { setViewingScheduleJobId(null); }}><X size={20} /></button>
+
+              <div className="flex align-center justify-between" style={{ marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
+                <div>
+                  <h2 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
+                    Interview Process & Rounds
+                  </h2>
+                  <p style={{ fontSize: '14px', color: 'var(--color-indigo)', fontWeight: 600 }}>
+                    {scheduleJob?.title} · {scheduleJob?.company}
+                  </p>
+                </div>
+              </div>
+
+              {loadingRounds ? (
+                <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                  <div className="flex align-center justify-center" style={{ gap: '8px', color: 'var(--text-secondary)' }}>
+                    <Clock size={18} style={{ animation: 'spin 1s linear infinite' }} />
+                    <span>Loading interview schedule...</span>
+                  </div>
+                </div>
+              ) : rounds.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '32px 0' }}>
+                  <Calendar size={40} style={{ color: 'var(--text-muted)', marginBottom: '16px' }} />
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '14px', lineHeight: '1.6', maxWidth: '400px', margin: '0 auto' }}>
+                    All applications for this job are shortlisted. However, the recruiting team has not scheduled any interview rounds yet. Please check back later.
+                  </p>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', paddingLeft: '16px', position: 'relative' }}>
+                  {/* Vertical line connecting nodes */}
+                  <div style={{
+                    position: 'absolute', left: '27px', top: '12px', bottom: '12px',
+                    width: '2px', background: 'var(--border-color)', zIndex: 0
+                  }}></div>
+
+                  {rounds.map((round, index) => {
+                    const roundNumber = round.roundNumber || (index + 1);
+                    const matchingApp = myApplications.find((a) => a.jobId === viewingScheduleJobId);
+                    const savedResult = matchingApp
+                      ? roundResults.find(
+                          (r) => r.applicationId === matchingApp.applicationId && r.roundNumber === roundNumber
+                        )
+                      : null;
+
+                    let nodeBg = 'var(--color-indigo)';
+                    if (savedResult) {
+                      nodeBg = savedResult.result === 'pass' ? 'var(--color-teal)' : '#ef4444';
+                    } else if (matchingApp && matchingApp.status === 'rejected') {
+                      nodeBg = '#ef4444';
+                    }
+
+                    return (
+                      <div key={round.id} className="flex" style={{ gap: '20px', position: 'relative', zIndex: 1 }}>
+                        {/* Round indicator node */}
+                        <div style={{
+                          width: '24px', height: '24px', borderRadius: '50%',
+                          background: nodeBg,
+                          color: '#fff',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: '12px', fontWeight: 700, flexShrink: 0
+                        }}>
+                          {index + 1}
+                        </div>
+
+                        {/* Details Box */}
+                        <div style={{ background: '#f8fafc', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '16px', flex: 1 }}>
+                          <div className="flex align-center justify-between" style={{ marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                            <h4 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                              {round.roundName}
+                            </h4>
+                            <span className={`badge ${round.isOnline ? 'badge-success' : 'badge-warning'}`} style={{ fontSize: '11px' }}>
+                              {round.isOnline ? 'Online' : 'Offline'}
+                            </span>
+                          </div>
+
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                            <span className="flex align-center" style={{ gap: '6px', fontSize: '13px', color: 'var(--text-secondary)' }}>
+                              <Clock size={13} style={{ color: 'var(--color-indigo)' }} />
+                              {formatDateTime(round.dateTime)}
+                            </span>
+                            <span className="flex align-center" style={{ gap: '6px', fontSize: '13px', color: 'var(--text-secondary)' }}>
+                              <Info size={13} style={{ color: 'var(--color-teal)' }} />
+                              <strong>Results:</strong> {round.resultDeclaration}
+                            </span>
+
+                            {(() => {
+                              const roundNumber = round.roundNumber || (index + 1);
+                              const matchingApp = myApplications.find((a) => a.jobId === viewingScheduleJobId);
+                              const savedResult = matchingApp
+                                ? roundResults.find(
+                                    (r) => r.applicationId === matchingApp.applicationId && r.roundNumber === roundNumber
+                                  )
+                                : null;
+
+                              if (savedResult) {
+                                return (
+                                  <div style={{ marginTop: '6px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                    <div className="flex align-center" style={{ gap: '6px' }}>
+                                      <span className={`badge ${savedResult.result === 'pass' ? 'badge-success' : 'badge-danger'}`}
+                                            style={{
+                                              fontSize: '11px',
+                                              backgroundColor: savedResult.result === 'pass' ? undefined : '#fee2e2',
+                                              color: savedResult.result === 'pass' ? undefined : '#b91c1c'
+                                            }}>
+                                        Status: {savedResult.result === 'pass' ? 'Passed ✅' : 'Failed ❌'}
+                                      </span>
+                                    </div>
+                                    {savedResult.remarks && (
+                                      <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                                        Remarks: "{savedResult.remarks}"
+                                      </span>
+                                    )}
+                                  </div>
+                                );
+                              }
+
+                              if (matchingApp && matchingApp.status === 'rejected') {
+                                return (
+                                  <div style={{ marginTop: '6px' }}>
+                                    <span className="badge badge-danger"
+                                          style={{
+                                            fontSize: '11px',
+                                            backgroundColor: '#fee2e2',
+                                            color: '#b91c1c'
+                                          }}>
+                                      Status: Failed ❌
+                                    </span>
+                                  </div>
+                                );
+                              }
+
+                              return (
+                                <div style={{ marginTop: '6px' }}>
+                                  <span className="badge badge-info" style={{ fontSize: '11px' }}>
+                                    Status: Pending Evaluation ⏳
+                                  </span>
+                                </div>
+                              );
+                            })()}
+                          </div>
+
+                          {/* Online instructions */}
+                          {round.isOnline && (!savedResult || savedResult.result !== 'pass') && (
+                            <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px dashed var(--border-color)' }}>
+                              <div style={{ background: '#f8fafc', border: '1px solid var(--border-color)', borderRadius: '6px', padding: '10px 14px', fontSize: '12.5px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                                💻 <strong>Online Round:</strong> The interview joining link will be shared via email before the session starts.
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex" style={{ gap: '12px', justifyContent: 'flex-end', marginTop: '24px', borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
+                <button className="btn btn-primary" onClick={() => { setViewingScheduleJobId(null); }}>Close</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       <footer className="app-footer">
         <div className="container">© {new Date().getFullYear()} RecruitOS. All rights reserved.</div>

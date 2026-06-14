@@ -12,18 +12,52 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
     if (!email || !password || (!isLogin && !name)) {
-      alert('Please fill out all fields.');
+      setError('Please fill out all fields.');
       return;
     }
-    // Simulate login/registration success
-    onAuthSuccess({
-      name: isLogin ? (role === 'recruiter' ? 'Alice (Recruiter)' : 'Bob (Applicant)') : name,
-      email,
-      role
-    });
+
+    setLoading(true);
+    try {
+      const endpoint = isLogin ? '/api/auth/login' : '/api/auth/signup';
+      const body = isLogin
+        ? { email, password }
+        : { name, email, password, role: role === 'applicant' ? 'candidate' : 'recruiter' };
+
+      const response = await fetch(`http://localhost:5000${endpoint}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Authentication failed.');
+      }
+
+      // Save token in localStorage
+      localStorage.setItem('rms_token', data.token);
+
+      // Trigger success callback
+      onAuthSuccess({
+        name: data.user.name,
+        email: data.user.email,
+        role: data.user.role === 'candidate' ? 'applicant' : 'recruiter',
+      });
+    } catch (err: any) {
+      setError(err.message || 'An error occurred during authentication.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -56,6 +90,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
             type="button"
             className={`role-tab ${role === 'recruiter' ? 'active' : ''}`}
             onClick={() => setRole('recruiter')}
+            disabled={loading}
           >
             Recruiter
           </button>
@@ -63,10 +98,28 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
             type="button"
             className={`role-tab ${role === 'applicant' ? 'active' : ''}`}
             onClick={() => setRole('applicant')}
+            disabled={loading}
           >
             Applicant
           </button>
         </div>
+
+        {/* Error message */}
+        {error && (
+          <div style={{
+            background: '#fef2f2',
+            border: '1px solid #fee2e2',
+            color: '#b91c1c',
+            padding: '10px',
+            borderRadius: '6px',
+            fontSize: '13px',
+            marginBottom: '16px',
+            textAlign: 'center',
+            fontWeight: 500
+          }}>
+            {error}
+          </div>
+        )}
 
         {/* Auth Form */}
         <form onSubmit={handleSubmit}>
@@ -85,6 +138,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
                   style={{ paddingLeft: '38px' }}
                   value={name}
                   onChange={(e) => setName(e.target.value)}
+                  disabled={loading}
                 />
               </div>
             </div>
@@ -104,6 +158,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
                 style={{ paddingLeft: '38px' }}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                disabled={loading}
               />
             </div>
           </div>
@@ -122,6 +177,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
                 style={{ paddingLeft: '38px' }}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                disabled={loading}
               />
             </div>
           </div>
@@ -129,9 +185,17 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
           <button
             type="submit"
             className="btn btn-primary"
-            style={{ width: '100%', padding: '12px', fontSize: '15px', marginTop: '8px' }}
+            style={{
+              width: '100%',
+              padding: '12px',
+              fontSize: '15px',
+              marginTop: '8px',
+              opacity: loading ? 0.7 : 1,
+              cursor: loading ? 'not-allowed' : 'pointer'
+            }}
+            disabled={loading}
           >
-            {isLogin ? 'Sign In' : 'Sign Up'}
+            {loading ? 'Processing...' : isLogin ? 'Sign In' : 'Sign Up'}
           </button>
         </form>
 
@@ -144,6 +208,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
                 type="button"
                 onClick={() => setIsLogin(false)}
                 style={{ background: 'none', border: 'none', color: 'var(--color-indigo)', cursor: 'pointer', fontWeight: 500, padding: 0 }}
+                disabled={loading}
               >
                 Sign up free
               </button>
@@ -155,6 +220,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
                 type="button"
                 onClick={() => setIsLogin(true)}
                 style={{ background: 'none', border: 'none', color: 'var(--color-indigo)', cursor: 'pointer', fontWeight: 500, padding: 0 }}
+                disabled={loading}
               >
                 Log in
               </button>

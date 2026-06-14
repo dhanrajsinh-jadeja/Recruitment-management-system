@@ -4,18 +4,27 @@ import type { Job } from './RecruiterDashboard';
 
 interface AddJobPageProps {
   user: { name: string; email: string; role: string };
+  jobToEdit?: Job | null;
   onJobAdded: (job: Job) => void;
+  onJobUpdated: (job: Job) => void;
   onBack: () => void;
   onLogout: () => void;
 }
 
-export const AddJobPage: React.FC<AddJobPageProps> = ({ user, onJobAdded, onBack, onLogout }) => {
-  const [title, setTitle] = useState('');
-  const [company, setCompany] = useState('');
-  const [location, setLocation] = useState('');
-  const [salary, setSalary] = useState('');
-  const [description, setDescription] = useState('');
-  const [requirements, setRequirements] = useState('');
+export const AddJobPage: React.FC<AddJobPageProps> = ({
+  user,
+  jobToEdit,
+  onJobAdded,
+  onJobUpdated,
+  onBack,
+  onLogout,
+}) => {
+  const [title, setTitle] = useState(jobToEdit ? jobToEdit.title : '');
+  const [company, setCompany] = useState(jobToEdit ? jobToEdit.company : '');
+  const [location, setLocation] = useState(jobToEdit ? jobToEdit.location : '');
+  const [salary, setSalary] = useState(jobToEdit ? jobToEdit.salary : '');
+  const [description, setDescription] = useState(jobToEdit ? jobToEdit.description : '');
+  const [requirements, setRequirements] = useState(jobToEdit ? jobToEdit.requirements : '');
   const [jobType, setJobType] = useState('Full-time');
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -24,18 +33,31 @@ export const AddJobPage: React.FC<AddJobPageProps> = ({ user, onJobAdded, onBack
       alert('Please fill all required fields.');
       return;
     }
-    const newJob: Job = {
-      id: Date.now().toString(),
-      title,
-      company,
-      location,
-      salary: salary || 'Not specified',
-      description,
-      requirements,
-      postedBy: user.email,
-      postedAt: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
-    };
-    onJobAdded(newJob);
+    if (jobToEdit) {
+      const updatedJob: Job = {
+        ...jobToEdit,
+        title,
+        company,
+        location,
+        salary: salary || 'Not specified',
+        description,
+        requirements,
+      };
+      onJobUpdated(updatedJob);
+    } else {
+      const newJob: Job = {
+        id: Date.now().toString(),
+        title,
+        company,
+        location,
+        salary: salary || 'Not specified',
+        description,
+        requirements,
+        postedBy: user.email,
+        postedAt: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
+      };
+      onJobAdded(newJob);
+    }
   };
 
   return (
@@ -72,8 +94,12 @@ export const AddJobPage: React.FC<AddJobPageProps> = ({ user, onJobAdded, onBack
           <ArrowLeft size={14} /> Back to Dashboard
         </button>
 
-        <h1 className="page-title">Post a New Job</h1>
-        <p className="page-subtitle">Fill in the details below to publish a new job opening.</p>
+        <h1 className="page-title">{jobToEdit ? 'Update Job Details' : 'Post a New Job'}</h1>
+        <p className="page-subtitle">
+          {jobToEdit
+            ? 'Modify the fields below to update the job opening details.'
+            : 'Fill in the details below to publish a new job opening.'}
+        </p>
 
         <div className="dashboard-card" style={{ padding: '32px' }}>
           <form onSubmit={handleSubmit}>
@@ -172,7 +198,7 @@ export const AddJobPage: React.FC<AddJobPageProps> = ({ user, onJobAdded, onBack
             {/* Actions */}
             <div className="flex" style={{ gap: '12px', justifyContent: 'flex-end', paddingTop: '8px' }}>
               <button type="button" className="btn btn-secondary" onClick={onBack}>Cancel</button>
-              <button type="submit" className="btn btn-primary">Publish Job</button>
+              <button type="submit" className="btn btn-primary">{jobToEdit ? 'Save Changes' : 'Publish Job'}</button>
             </div>
           </form>
         </div>

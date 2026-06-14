@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, Eye, Briefcase, MapPin, DollarSign, Trash2 } from 'lucide-react';
+import { Plus, Eye, Briefcase, MapPin, DollarSign, Trash2, Calendar, Pencil } from 'lucide-react';
 
 export interface Job {
   id: string;
@@ -18,6 +18,8 @@ interface RecruiterDashboardProps {
   jobs: Job[];
   onAddJob: () => void;
   onViewResponses: (jobId: string) => void;
+  onSetupInterviews: (jobId: string) => void;
+  onEditJob: (job: Job) => void;
   onDeleteJob: (jobId: string) => void;
   onLogout: () => void;
   responseCount: (jobId: string) => number;
@@ -28,6 +30,8 @@ export const RecruiterDashboard: React.FC<RecruiterDashboardProps> = ({
   jobs,
   onAddJob,
   onViewResponses,
+  onSetupInterviews,
+  onEditJob,
   onDeleteJob,
   onLogout,
   responseCount,
@@ -123,6 +127,20 @@ export const RecruiterDashboard: React.FC<RecruiterDashboardProps> = ({
                           onClick={() => onViewResponses(job.id)}
                         >
                           <Eye size={13} /> Responses
+                        </button>
+                        <button
+                          className="btn btn-secondary btn-sm"
+                          style={{ gap: '4px', display: 'flex', alignItems: 'center' }}
+                          onClick={() => onSetupInterviews(job.id)}
+                        >
+                          <Calendar size={13} /> Set Rounds
+                        </button>
+                        <button
+                          className="btn btn-secondary btn-sm"
+                          style={{ gap: '4px', display: 'flex', alignItems: 'center' }}
+                          onClick={() => onEditJob(job)}
+                        >
+                          <Pencil size={13} /> Edit
                         </button>
                         <button
                           className="btn btn-sm"
