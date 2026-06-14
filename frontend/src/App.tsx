@@ -32,48 +32,6 @@ interface User {
   role: 'recruiter' | 'applicant';
 }
 
-// Seed data — pre-loaded sample jobs so applicants see listings right away
-const SEED_JOBS: Job[] = [
-  {
-    id: 'seed-1',
-    title: 'Frontend Developer',
-    company: 'TechNova Solutions',
-    location: 'Remote',
-    salary: '₹8–14 LPA',
-    description:
-      'We are looking for a skilled Frontend Developer with experience in React and TypeScript. You will work with cross-functional teams to build fast, accessible, and beautiful user interfaces.',
-    requirements:
-      'React, TypeScript, CSS, REST APIs, Git. 2+ years of experience preferred.',
-    postedBy: 'hr@technova.com',
-    postedAt: 'Jun 1, 2026',
-  },
-  {
-    id: 'seed-2',
-    title: 'Backend Engineer (Node.js)',
-    company: 'CloudBase Inc.',
-    location: 'Bangalore, India',
-    salary: '₹12–20 LPA',
-    description:
-      'Join our backend team to design scalable REST APIs and microservices. You will work on high-traffic systems and collaborate with senior architects.',
-    requirements:
-      'Node.js, Express, MongoDB, AWS, Docker. 3+ years of experience.',
-    postedBy: 'recruit@cloudbase.io',
-    postedAt: 'May 28, 2026',
-  },
-  {
-    id: 'seed-3',
-    title: 'UI/UX Designer',
-    company: 'Creative Studio',
-    location: 'Mumbai, India',
-    salary: '₹6–10 LPA',
-    description:
-      'Design intuitive user experiences for web and mobile applications. You will create wireframes, prototypes, and collaborate with developers to deliver polished products.',
-    requirements:
-      'Figma, Adobe XD, user research, prototyping. Portfolio required.',
-    postedBy: 'jobs@creativestudio.in',
-    postedAt: 'May 25, 2026',
-  },
-];
 
 // Pre-seeded interview rounds for seed jobs
 const SEED_INTERVIEWS: Record<string, InterviewRound[]> = {
